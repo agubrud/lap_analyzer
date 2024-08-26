@@ -10,6 +10,7 @@ class VideoFile():
         self.framerate = int(self.handle.get(cv2.CAP_PROP_FPS))
         self.width = int(self.handle.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.num_frames = int(self.handle.get(cv2.CAP_PROP_FRAME_COUNT))
 
     def display_frame(self, frame, frame_count):
         cv2.putText(frame, f"Frame: {frame_count}", (int(self.height/2)-200, self.height-30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
@@ -37,7 +38,10 @@ class VideoFile():
                 self.handle.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
             elif key == ord('d'):
                 frame_count += 100
-                self.handle.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
+                if frame_count < self.num_frames:
+                    self.handle.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
+                else:
+                    print(f'Tried to skip to frame {frame_count} but only {self.num_frames} available!')
             elif key == ord('w'):
                 delay += 500
             elif key == ord('s'):
@@ -48,8 +52,14 @@ class VideoFile():
                     laps.append(lap_events[-1]-lap_events[-2])
                     print(f'Lap {len(lap_events)-1}: {floatsec_to_minsecms(laps[-1])}')
             elif key == ord('f'):
-                frame_count += int(np.average(laps)*self.framerate * 0.95)
-                self.handle.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
+                if len(laps) > 0:
+                    frame_count += int(np.average(laps)*self.framerate * 0.95)
+                    if frame_count < self.num_frames:
+                        self.handle.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
+                    else:
+                        print(f'Tried to skip to frame {frame_count} but only {self.num_frames} available!')
+                else:
+                    print(f'Not enough laps logged to project the skip length!')
 
         print(f'Fastest Lap: {floatsec_to_minsecms(np.min(laps))}')
         self.handle.release()
